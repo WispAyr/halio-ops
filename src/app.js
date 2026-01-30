@@ -6,6 +6,7 @@ const rtmpIngestService = require('./services/rtmpIngestService');
 const onvifService = require('./services/onvifService');
 const halioService = require('./services/halioService');
 const config = require('./config');
+const statusService = require("./services/statusService");
 const analyzeRoutes = require('./routes/analyze');
 
 const app = express();
@@ -61,6 +62,26 @@ app.get('/health', async (_req, res) => {
   res.json({ status: 'ok', halioDevice: config.halioDevicePath, halioAvailable });
 });
 
+
+// Developer status endpoint - real-time activity
+app.get("/status", async (_req, res) => {
+  const halioAvailable = await halioService.isAvailable();
+  const pipelines = pipelineService.listPipelines();
+  const ingests = rtmpIngestService.list();
+  const status = statusService.getStatus();
+  
+  res.json({
+    ...status,
+    hailo: {
+      available: halioAvailable,
+      device: config.halioDevicePath,
+      model: config.halioModelPath,
+    },
+    pipelines: pipelines.length,
+    activePipelines: pipelines.filter(p => p.running).length,
+    ingests: ingests.length,
+  });
+});
 app.get('/config', (_req, res) => {
   res.json(config);
 });
