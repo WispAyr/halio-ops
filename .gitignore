@@ -1,0 +1,17 @@
+node_modules/
+.env
+*.log
+hailort*.log
+pyhailort.log
+dev.log
+.DS_Store
+gstshark_*/
+tmp/
+uploads/
+*.jpg
+*.png
+pipelines/output/
+pipelines/rtmp/
+*.ts
+*.raw
+*.m3u8

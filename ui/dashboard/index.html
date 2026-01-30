@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Halio Ops Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles/output.css" />
+  </head>
+  <body>
+    <div class="aurora-ring"></div>
+    <div class="page-shell">
+      <header class="panel">
+        <div class="panel-body space-y-10">
+          <div class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+            <div class="max-w-3xl space-y-3">
+              <div class="section-label">Mission Control</div>
+              <h1 class="hero-title">Halio Ops Command Center</h1>
+              <p class="hero-copy">
+                SpaceX-inspired operations interface for orchestrating RTSP &amp; RTMP pipelines, Halio inference, and ONVIF vision systems.
+              </p>
+            </div>
+            <div class="hero-actions">
+              <button id="open-new-pipeline" class="btn-primary">
+                <span class="material-symbols-rounded text-base">add</span>
+                Launch Pipeline
+              </button>
+              <button id="open-new-ingest" class="btn-muted">
+                <span class="material-symbols-rounded text-base">queue_play_next</span>
+                New RTMP Ingest
+              </button>
+              <a class="btn-ghost" href="../../docs/dashboard.md" target="_blank" rel="noreferrer">
+                <span class="material-symbols-rounded text-base">description</span>
+                Dashboard Docs
+              </a>
+            </div>
+          </div>
+
+          <div class="status-grid" id="status-bar">
+            <article class="status-card" data-status="halio" data-state="idle">
+              <div class="status-card__inner">
+                <span class="status-card__icon material-symbols-rounded">satellite_alt</span>
+                <div class="status-card__meta">
+                  <span class="status-card__label">Halio Link</span>
+                  <span class="status-card__value" data-role="status-text">Halio: Unknown</span>
+                </div>
+              </div>
+              <span class="status-card__dot" data-role="status-dot"></span>
+            </article>
+            <article class="status-card" data-status="api" data-state="idle">
+              <div class="status-card__inner">
+                <span class="status-card__icon material-symbols-rounded">hub</span>
+                <div class="status-card__meta">
+                  <span class="status-card__label">Control API</span>
+                  <span class="status-card__value" data-role="status-text">API: Pending</span>
+                </div>
+              </div>
+              <span class="status-card__dot" data-role="status-dot"></span>
+            </article>
+            <article class="status-card" data-state="idle">
+              <div class="status-card__inner">
+                <span class="status-card__icon material-symbols-rounded">timeline</span>
+                <div class="status-card__meta">
+                  <span class="status-card__label">Telemetry Feed</span>
+                  <span class="status-card__value">WebSocket auto-sync on connect</span>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+      </header>
+
+      <main class="grid flex-1 grid-cols-1 gap-6 xl:grid-cols-[1.6fr_1fr]">
+        <div class="flex flex-col gap-6">
+          <section class="panel">
+            <div class="panel-header">
+              <div class="flex flex-col gap-1">
+                <div class="section-label">RTSP Pipelines</div>
+                <h2 class="panel-title">Accelerated Feeds</h2>
+              </div>
+              <div class="flex items-center gap-2">
+                <button id="refresh-pipelines" class="btn-ghost">
+                  <span class="material-symbols-rounded text-base">refresh</span>
+                  Refresh
+                </button>
+              </div>
+            </div>
+            <div id="pipelines-list" class="list-surface">
+              <div class="flex items-center justify-center py-12 text-sm text-slate-400">
+                Loading pipelines…
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <div class="flex flex-col gap-1">
+                <div class="section-label">RTMP Ingests</div>
+                <h2 class="panel-title">Launchpad Streams</h2>
+              </div>
+              <div class="flex items-center gap-2">
+                <button id="refresh-rtmp" class="btn-ghost">
+                  <span class="material-symbols-rounded text-base">refresh</span>
+                  Refresh
+                </button>
+              </div>
+            </div>
+            <div id="rtmp-list" class="list-surface">
+              <div class="flex items-center justify-center py-12 text-sm text-slate-400">
+                Loading ingests…
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="flex flex-col gap-6">
+          <section class="panel">
+            <div class="panel-header">
+              <div class="flex flex-col gap-1">
+                <div class="section-label">Live Preview</div>
+                <h2 class="panel-title">Mission Feed</h2>
+              </div>
+              <div class="flex items-center gap-2 text-xs text-slate-400">
+                <label class="flex items-center gap-2">
+                  <span>Source</span>
+                  <select
+                    id="preview-source"
+                    class="rounded-full border border-slate-700/60 bg-slate-900/80 px-4 py-1.5 text-xs font-medium text-slate-200 focus:border-blue-500 focus:ring-blue-500"
+                  >
+                    <option value="" disabled selected>No streams available</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div class="video-frame relative">
+                <video id="preview-player" controls autoplay muted playsinline crossorigin="anonymous"></video>
+                <canvas id="detection-overlay" class="absolute top-0 left-0 pointer-events-none" style="width: 100%; height: 100%;"></canvas>
+              </div>
+              <div id="detection-summary" class="mt-3 flex flex-wrap gap-2"></div>
+              <p id="preview-status" class="mt-3 text-xs text-slate-400">
+                Select a pipeline or ingest to view its HLS preview.
+              </p>
+            </div>
+          </section>
+
+          <section class="panel flex flex-col overflow-hidden">
+            <div class="panel-header">
+              <div class="flex flex-col gap-1">
+                <div class="section-label">Inference Telemetry</div>
+                <h2 class="panel-title">Real-Time Insights</h2>
+              </div>
+              <div class="flex items-center gap-2 text-xs text-slate-400" id="ws-status">
+                <span class="status-dot"></span>
+                <span>Connecting…</span>
+              </div>
+            </div>
+            <div class="flex-1 overflow-y-auto" id="inference-log">
+              <div class="px-6 py-10 text-center text-sm text-slate-500">
+                Awaiting inference results…
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+
+      <dialog id="new-pipeline-dialog" class="panel w-full max-w-xl backdrop:bg-black/70">
+        <form class="flex flex-col gap-4 p-6" method="dialog">
+          <div>
+            <h3 class="text-lg font-semibold">Launch New RTSP Pipeline</h3>
+            <p class="text-xs text-slate-400">Provide RTSP source and optional Halio inference settings.</p>
+          </div>
+          <label class="flex flex-col gap-2 text-sm">
+            <span>Name</span>
+            <input
+              class="rounded-md border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-200 focus:border-blue-500 focus:ring-blue-500"
+              type="text"
+              name="name"
+              placeholder="cam-lobby"
+              required
+            />
+          </label>
+          <label class="flex flex-col gap-2 text-sm">
+            <span>RTSP URL</span>
+            <input
+              class="rounded-md border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-200 focus:border-blue-500 focus:ring-blue-500"
+              type="url"
+              name="rtspUrl"
+              placeholder="rtsp://user:pass@host/stream"
+            />
+            <span class="text-xs text-slate-500">Leave blank to use the default ONVIF camera stream.</span>
+          </label>
+          <label class="flex items-center gap-3 text-sm">
+            <input type="checkbox" name="autoInfer" class="rounded border-slate-700 bg-slate-900 text-blue-500 focus:ring-blue-500" />
+            <span>Enable Halio inference</span>
+          </label>
+          <label class="flex flex-col gap-2 text-sm" id="model-path-field" hidden>
+            <span>Model</span>
+            <select
+              id="pipeline-model-select"
+              name="modelPath"
+              class="rounded-md border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-200 focus:border-blue-500 focus:ring-blue-500"
+            >
+              <option value="">Default (from config)</option>
+            </select>
+            <span class="text-xs text-slate-500">Or specify custom path below</span>
+            <input
+              class="rounded-md border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-200 focus:border-blue-500 focus:ring-blue-500"
+              type="text"
+              name="modelPathCustom"
+              placeholder="/opt/halio/models/custom.hbm"
+            />
+          </label>
+          <div class="mt-2 flex justify-end gap-3">
+            <button class="btn-ghost" value="cancel" type="reset">Cancel</button>
+            <button class="btn-primary" value="confirm" type="submit">Launch</button>
+          </div>
+        </form>
+      </dialog>
+
+      <dialog id="new-ingest-dialog" class="panel w-full max-w-xl backdrop:bg-black/70">
+        <form class="flex flex-col gap-4 p-6" method="dialog">
+          <div>
+            <h3 class="text-lg font-semibold">Launch New RTMP Ingest</h3>
+            <p class="text-xs text-slate-400">Pull an RTMP stream into FFmpeg and feed Halio inference.</p>
+          </div>
+          <label class="flex flex-col gap-2 text-sm">
+            <span>Name</span>
+            <input
+              class="rounded-md border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-200 focus:border-blue-500 focus:ring-blue-500"
+              type="text"
+              name="name"
+              placeholder="stage-feed"
+              required
+            />
+          </label>
+          <label class="flex flex-col gap-2 text-sm">
+            <span>RTMP URL</span>
+            <input
+              class="rounded-md border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-200 focus:border-blue-500 focus:ring-blue-500"
+              type="url"
+              name="rtmpUrl"
+              placeholder="rtmp://encoder/live/stage"
+              required
+            />
+          </label>
+          <label class="flex flex-col gap-2 text-sm">
+            <span>Segment Duration (seconds)</span>
+            <input
+              class="rounded-md border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-200 focus:border-blue-500 focus:ring-blue-500"
+              type="number"
+              name="segmentTime"
+              min="2"
+              max="15"
+              step="1"
+              value="6"
+            />
+          </label>
+          <label class="flex items-center gap-3 text-sm">
+            <input type="checkbox" name="autoInfer" class="rounded border-slate-700 bg-slate-900 text-blue-500 focus:ring-blue-500" />
+            <span>Enable Halio inference</span>
+          </label>
+          <label class="flex flex-col gap-2 text-sm" id="ingest-model-path-field" hidden>
+            <span>Model Path</span>
+            <input
+              class="rounded-md border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm text-slate-200 focus:border-blue-500 focus:ring-blue-500"
+              type="text"
+              name="modelPath"
+              placeholder="/opt/halio/models/detect.hbm"
+            />
+          </label>
+          <div class="mt-2 flex justify-end gap-3">
+            <button class="btn-ghost" value="cancel" type="reset">Cancel</button>
+            <button class="btn-primary" value="confirm" type="submit">Launch</button>
+          </div>
+        </form>
+      </dialog>
+    </div>
+
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:wght@400&display=swap"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7/dist/hls.min.js" crossorigin="anonymous"></script>
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>
