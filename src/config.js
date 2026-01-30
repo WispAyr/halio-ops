@@ -47,7 +47,7 @@ function parseOnvifCameras() {
 const config = {
   port: Number(process.env.PORT || 3000),
   halioDevicePath: process.env.HALIO_DEVICE_PATH || '/dev/hailo0',
-  halioModelPath: process.env.HALIO_MODEL_PATH || '/usr/share/hailo-models/yolov8s_h8l.hef',
+  halioModelPath: process.env.HALIO_MODEL_PATH || '/usr/share/hailo-models/yolov8s_h8.hef',
   rtspInputUrl: process.env.RTSP_INPUT_URL || '',
   pipelineStorage: process.env.PIPELINE_STORAGE || path.resolve(process.cwd(), 'pipelines/output'),
   rtmpStorage: process.env.RTMP_STORAGE || path.resolve(process.cwd(), 'pipelines/rtmp'),
